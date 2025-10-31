@@ -1,0 +1,15 @@
+{
+  "name": "pdfjs-dist",
+  "version": "1.0.0",
+  "description": "PDF.js(pdfjs-dist) / react-pdfで日本語の文字が表示されない問題の解決方法\r https://zenn.dev/dynagon/articles/c00a3b5ac39103",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Takuya Motoshima <developer.takuyamotoshima@gmail.com> (https://twitter.com/TakuyaMotoshima)",
+  "license": "MIT",
+  "dependencies": {
+    "pdfjs-dist": "^4.9.155"
+  }
+}

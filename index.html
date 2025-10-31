@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF画像変換 品質テスト</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    /* 全体的なフォントサイズを小さく */
+    :root {
+      --bs-body-font-size: 0.875rem;
+    }
+
+    /* モダンなカラーテーマ */
+    body {
+      font-family: Meiryo, 'メイリオ', 'Hiragino Sans', 'ヒラギノ角ゴシック', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+
+    /* Primaryボタン（インディゴ） */
+    .btn-primary {
+      --bs-btn-color: #fff;
+      --bs-btn-bg: #6366f1;
+      --bs-btn-border-color: #6366f1;
+      --bs-btn-hover-color: #fff;
+      --bs-btn-hover-bg: #4f46e5;
+      --bs-btn-hover-border-color: #4f46e5;
+      --bs-btn-focus-shadow-rgb: 99, 102, 241;
+      --bs-btn-active-color: #fff;
+      --bs-btn-active-bg: #4338ca;
+      --bs-btn-active-border-color: #4338ca;
+      --bs-btn-disabled-color: #fff;
+      --bs-btn-disabled-bg: #6366f1;
+      --bs-btn-disabled-border-color: #6366f1;
+    }
+
+    /* Successボタン（エメラルド） */
+    .btn-success {
+      --bs-btn-color: #fff;
+      --bs-btn-bg: #10b981;
+      --bs-btn-border-color: #10b981;
+      --bs-btn-hover-color: #fff;
+      --bs-btn-hover-bg: #059669;
+      --bs-btn-hover-border-color: #059669;
+      --bs-btn-focus-shadow-rgb: 16, 185, 129;
+      --bs-btn-active-color: #fff;
+      --bs-btn-active-bg: #047857;
+      --bs-btn-active-border-color: #047857;
+      --bs-btn-disabled-color: #fff;
+      --bs-btn-disabled-bg: #10b981;
+      --bs-btn-disabled-border-color: #10b981;
+    }
+
+    /* カード */
+    .card {
+      border-color: #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ボーダー */
+    .border,
+    .border-end,
+    .border-bottom {
+      border-color: #e2e8f0 !important;
+    }
+
+    /* フォーカス時の色 */
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #a5b4fc;
+      box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    }
+
+    /* チェックボックス */
+    .form-check-input:checked {
+      background-color: #6366f1;
+      border-color: #6366f1;
+    }
+
+    /* アラート */
+    .alert-danger {
+      background-color: #fee2e2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .left-pane {
+      width: 320px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .right-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .preview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      flex: 1;
+      align-content: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .page-wrapper {
+      flex: 0 0 auto;
+      max-width: 600px;
+    }
+
+    .page-canvas {
+      max-width: 100%;
+      max-height: 800px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .control-input {
+      width: 80px;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+      }
+
+      .left-pane {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container-fluid main-container">
+    <div class="left-pane bg-white border-end p-3">
+      <h1 class="h4 mb-4">PDF画像変換 品質テスト</h1>
+
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">ファイルアップロード</h5>
+          <input type="file" id="pdfUpload" class="form-control" accept="application/pdf">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">変換設定</h5>
+
+          <div class="mb-2 d-flex align-items-center gap-2">
+            <label for="maxWidth" class="form-label mb-0 text-nowrap">最大幅:</label>
+            <input type="number" id="maxWidth" class="form-control control-input" value="1080" min="50" max="2000">
+            <span class="text-nowrap">px</span>
+          </div>
+
+          <div class="mb-2 d-flex align-items-center gap-2">
+            <label for="scale" class="form-label mb-0 text-nowrap">スケール:</label>
+            <input type="number" id="scale" class="form-control control-input" value="1" min="1" max="10" step="1">
+          </div>
+
+          <div class="form-check mb-2">
+            <input type="checkbox" id="printIntent" class="form-check-input" checked>
+            <label for="printIntent" class="form-check-label">高画質モード (print intent)</label>
+          </div>
+
+          <div class="form-check mb-2">
+            <input type="checkbox" id="disableForms" class="form-check-input" checked>
+            <label for="disableForms" class="form-check-label">フォーム無効化</label>
+          </div>
+
+          <div class="form-check mb-2">
+            <input type="checkbox" id="highQualityCanvas" class="form-check-input" checked>
+            <label for="highQualityCanvas" class="form-check-label">Canvas高画質描画</label>
+          </div>
+
+          <div class="form-check mb-2">
+            <input type="checkbox" id="useDevicePixelRatio" class="form-check-input" checked>
+            <label for="useDevicePixelRatio" class="form-check-label">高DPI対応 (Retina対応)</label>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" id="useTransform" class="form-check-input">
+            <label for="useTransform" class="form-check-label">Transform最適化</label>
+          </div>
+
+          <button id="reRender" class="btn btn-primary w-100 mb-2" style="display: none;">再変換</button>
+        </div>
+      </div>
+
+      <div class="card mt-3" id="downloadSection" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title">ダウンロード</h5>
+
+          <div class="mb-2">
+            <label for="pageSelect" class="form-label">ページ選択</label>
+            <select id="pageSelect" class="form-select form-select-sm">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+
+          <button id="downloadSelected" class="btn btn-success btn-sm w-100 mb-2">選択ページをダウンロード</button>
+          <button id="downloadAll" class="btn btn-success w-100">全ページダウンロード</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-pane">
+      <div class="border-bottom p-3 bg-white">
+        <h5 class="mb-0">変換結果プレビュー</h5>
+      </div>
+      <div id="loading" class="text-center text-muted p-5" style="display: none;">読み込み中...</div>
+      <div id="preview" class="preview-grid bg-light"></div>
+    </div>
+  </div>
+
+  <script>
+    const pdfUpload = document.getElementById('pdfUpload');
+    const preview = document.getElementById('preview');
+    const loading = document.getElementById('loading');
+    const maxWidthInput = document.getElementById('maxWidth');
+    const scaleInput = document.getElementById('scale');
+    const printIntentInput = document.getElementById('printIntent');
+    const disableFormsInput = document.getElementById('disableForms');
+    const highQualityCanvasInput = document.getElementById('highQualityCanvas');
+    const useDevicePixelRatioInput = document.getElementById('useDevicePixelRatio');
+    const useTransformInput = document.getElementById('useTransform');
+    const reRenderBtn = document.getElementById('reRender');
+    const downloadAllBtn = document.getElementById('downloadAll');
+    const downloadSection = document.getElementById('downloadSection');
+    const pageSelect = document.getElementById('pageSelect');
+    const downloadSelectedBtn = document.getElementById('downloadSelected');
+
+    let currentPdf = null;
+    let currentFileName = null;
+    let renderedCanvases = [];
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.js';
+
+    pdfUpload.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file && file.type === 'application/pdf') {
+        handlePDFFile(file);
+      } else if (file) {
+        showError('PDFファイルを選択してください');
+      }
+    });
+
+    reRenderBtn.addEventListener('click', () => {
+      if (currentPdf) {
+        renderAllPages();
+      }
+    });
+
+    downloadAllBtn.addEventListener('click', () => {
+      downloadAllPages();
+    });
+
+    downloadSelectedBtn.addEventListener('click', () => {
+      const selectedPageNum = parseInt(pageSelect.value);
+      if (selectedPageNum) {
+        const item = renderedCanvases.find(item => item.pageNumber === selectedPageNum);
+        if (item) {
+          downloadCanvas(item.canvas, item.pageNumber);
+        }
+      } else {
+        showError('ページを選択してください');
+      }
+    });
+
+    async function handlePDFFile(file) {
+      loading.style.display = 'block';
+      preview.innerHTML = '';
+
+      // ファイル名から拡張子を除去して保存
+      currentFileName = file.name.replace(/\.pdf$/i, '');
+
+      const fileReader = new FileReader();
+
+      fileReader.onload = async function () {
+        try {
+          const typedArray = new Uint8Array(this.result);
+          const pdf = await pdfjsLib.getDocument({
+            data: typedArray,
+            cMapUrl: "https://package.protechidchecker.com/tests/pdfjs-dist/cmaps/",
+            cMapPacked: true,
+          }).promise;
+
+          currentPdf = pdf;
+          loading.style.display = 'none';
+          reRenderBtn.style.display = 'inline-block';
+          downloadSection.style.display = 'block';
+
+          renderAllPages();
+        } catch (error) {
+          loading.style.display = 'none';
+          if (error.name === 'PasswordException') {
+            showError('パスワード保護されたPDFは使用できません');
+          } else {
+            showError('PDFの読み込みに失敗しました');
+            console.error(error);
+          }
+        }
+      };
+
+      fileReader.readAsArrayBuffer(file);
+    }
+
+    async function renderAllPages() {
+      if (!currentPdf) return;
+
+      preview.innerHTML = '';
+      renderedCanvases = [];
+
+      // ページセレクトボックスをクリア
+      pageSelect.innerHTML = '<option value="">選択してください</option>';
+
+      for (let i = 1; i <= currentPdf.numPages; i++) {
+        await renderPage(currentPdf, i);
+
+        // ページセレクトボックスに追加
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Page ${i}`;
+        pageSelect.appendChild(option);
+      }
+    }
+
+    async function renderPage(pdf, pageNumber) {
+      const page = await pdf.getPage(pageNumber);
+
+      const baseScale = parseFloat(scaleInput.value) || 1.0;
+      const maxWidth = parseInt(maxWidthInput.value) || 1080;
+
+      // 元の幅を取得（scale: 1.0での幅）
+      const originalViewport = page.getViewport({scale: 1.0});
+      console.log(`[Page ${pageNumber}] PDFの元の幅: ${originalViewport.width}px × ${originalViewport.height}px (scale: 1.0)`);
+
+      let viewport = page.getViewport({scale: baseScale});
+      console.log(`[Page ${pageNumber}] baseScale適用後の幅: ${viewport.width}px × ${viewport.height}px (scale: ${baseScale})`);
+
+      if (viewport.width > maxWidth) {
+        const newScale = maxWidth / (viewport.width / baseScale);
+        viewport = page.getViewport({ scale: newScale });
+        console.log(`[Page ${pageNumber}] 最大幅制限適用後の幅: ${viewport.width}px × ${viewport.height}px (scale: ${newScale.toFixed(3)})`);
+      } else {
+        console.log(`[Page ${pageNumber}] 最大幅制限なし（${viewport.width}px < ${maxWidth}px）`);
+      }
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      // ダウンロード時のファイル名を設定
+      if (currentFileName) {
+        canvas.setAttribute('data-filename', `${currentFileName}_page${pageNumber}.png`);
+      }
+
+      // 高DPI対応設定
+      let outputScale = 1;
+      let transform = null;
+      
+      if (useDevicePixelRatioInput.checked) {
+        outputScale = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        // 縦横比を維持してCSSサイズを設定
+        canvas.style.width = viewport.width + "px";
+        canvas.style.height = viewport.height + "px";
+        
+        if (useTransformInput.checked && outputScale !== 1) {
+          transform = [outputScale, 0, 0, outputScale, 0, 0];
+        } else if (outputScale !== 1) {
+          context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+        }
+      } else {
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        // 通常時も明示的にサイズを設定
+        canvas.style.width = viewport.width + "px";
+        canvas.style.height = viewport.height + "px";
+      }
+      
+      canvas.className = 'page-canvas';
+
+      // Canvas描画品質の設定
+      if (highQualityCanvasInput.checked) {
+        context.imageSmoothingEnabled = true; // 高画質描画設定を適用しアンチエイリアシングを向上させ滑らかな描画にする
+        context.imageSmoothingQuality = 'high';
+      }
+
+      const pageWrapper = document.createElement('div');
+      pageWrapper.className = 'page-wrapper card';
+
+      const cardBody = document.createElement('div');
+      cardBody.className = 'card-body p-2';
+
+      const actualWidth = useDevicePixelRatioInput.checked ? Math.floor(viewport.width * outputScale) : Math.round(viewport.width);
+      const actualHeight = useDevicePixelRatioInput.checked ? Math.floor(viewport.height * outputScale) : Math.round(viewport.height);
+      const dpiInfo = useDevicePixelRatioInput.checked ? ` (${outputScale}x DPI)` : '';
+
+      canvas.className = 'page-canvas border rounded mb-2';
+
+      const pageNumberDiv = document.createElement('div');
+      pageNumberDiv.className = 'small fw-bold text-center mb-1';
+      pageNumberDiv.textContent = `Page ${pageNumber} (${actualWidth}×${actualHeight}px${dpiInfo})`;
+
+      const originalSizeDiv = document.createElement('div');
+      originalSizeDiv.className = 'small text-muted text-center mb-2';
+      originalSizeDiv.textContent = `元: ${Math.round(originalViewport.width)}×${Math.round(originalViewport.height)}px`;
+
+      cardBody.appendChild(canvas);
+      cardBody.appendChild(pageNumberDiv);
+      cardBody.appendChild(originalSizeDiv);
+      pageWrapper.appendChild(cardBody);
+      preview.appendChild(pageWrapper);
+
+      // Canvasを配列に保存
+      renderedCanvases.push({canvas, pageNumber});
+
+      // 高画質描画コンテキストを使用し印刷品質モードで描画してより高精細な出力にする
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+        intent: printIntentInput.checked ? 'print' : 'display', // 'print'は'display'より高画質
+        renderInteractiveForms: !disableFormsInput.checked,
+      };
+      
+      if (transform) {
+        renderContext.transform = transform;
+      }
+
+      await page.render(renderContext).promise;
+    }
+
+    function downloadCanvas(canvas, pageNumber) {
+      const filename = canvas.getAttribute('data-filename') || `page${pageNumber}.png`;
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }
+
+    async function downloadAllPages() {
+      if (renderedCanvases.length === 0) {
+        showError('ダウンロードする画像がありません');
+        return;
+      }
+
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.textContent = `ダウンロード中... (0/${renderedCanvases.length})`;
+
+      for (let i = 0; i < renderedCanvases.length; i++) {
+        const {canvas, pageNumber} = renderedCanvases[i];
+        await new Promise((resolve) => {
+          downloadCanvas(canvas, pageNumber);
+          downloadAllBtn.textContent = `ダウンロード中... (${i + 1}/${renderedCanvases.length})`;
+          // ブラウザのダウンロード処理を待つための遅延
+          setTimeout(resolve, 300);
+        });
+      }
+
+      downloadAllBtn.disabled = false;
+      downloadAllBtn.textContent = '全ページダウンロード';
+    }
+
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'alert alert-danger mx-3 mt-3';
+      errorDiv.textContent = message;
+      preview.appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+  </script>
+</body>
+</html>
