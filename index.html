@@ -153,71 +153,51 @@
     <div class="left-pane bg-white border-end p-3">
       <h1 class="h4 mb-4">PDF画像変換 品質テスト</h1>
 
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5 class="card-title">ファイルアップロード</h5>
-          <input type="file" id="pdfUpload" class="form-control" accept="application/pdf">
-        </div>
+      <h6 class="mb-2">ファイルアップロード</h6>
+      <input type="file" id="pdfUpload" class="form-control mb-4" accept="application/pdf">
+
+      <h6 class="mb-2">変換設定</h6>
+
+      <div class="mb-2 d-flex align-items-center gap-2">
+        <label for="maxWidth" class="form-label mb-0 text-nowrap">最大幅:</label>
+        <input type="number" id="maxWidth" class="form-control control-input" value="1440" min="50" max="2000">
+        <span class="text-nowrap">px</span>
       </div>
 
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">変換設定</h5>
-
-          <div class="mb-2 d-flex align-items-center gap-2">
-            <label for="maxWidth" class="form-label mb-0 text-nowrap">最大幅:</label>
-            <input type="number" id="maxWidth" class="form-control control-input" value="1080" min="50" max="2000">
-            <span class="text-nowrap">px</span>
-          </div>
-
-          <div class="mb-2 d-flex align-items-center gap-2">
-            <label for="scale" class="form-label mb-0 text-nowrap">スケール:</label>
-            <input type="number" id="scale" class="form-control control-input" value="1" min="1" max="10" step="1">
-          </div>
-
-          <div class="form-check mb-2">
-            <input type="checkbox" id="printIntent" class="form-check-input" checked>
-            <label for="printIntent" class="form-check-label">高画質モード (print intent)</label>
-          </div>
-
-          <div class="form-check mb-2">
-            <input type="checkbox" id="disableForms" class="form-check-input" checked>
-            <label for="disableForms" class="form-check-label">フォーム無効化</label>
-          </div>
-
-          <div class="form-check mb-2">
-            <input type="checkbox" id="highQualityCanvas" class="form-check-input" checked>
-            <label for="highQualityCanvas" class="form-check-label">Canvas高画質描画</label>
-          </div>
-
-          <div class="form-check mb-2">
-            <input type="checkbox" id="useDevicePixelRatio" class="form-check-input" checked>
-            <label for="useDevicePixelRatio" class="form-check-label">高DPI対応 (Retina対応)</label>
-          </div>
-
-          <div class="form-check mb-3">
-            <input type="checkbox" id="useTransform" class="form-check-input">
-            <label for="useTransform" class="form-check-label">Transform最適化</label>
-          </div>
-
-          <button id="reRender" class="btn btn-primary w-100 mb-2" style="display: none;">再変換</button>
-        </div>
+      <div class="mb-2 d-flex align-items-center gap-2">
+        <label for="scale" class="form-label mb-0 text-nowrap">スケール:</label>
+        <input type="number" id="scale" class="form-control control-input" value="1" min="1" max="10" step="1">
       </div>
 
-      <div class="card mt-3" id="downloadSection" style="display: none;">
-        <div class="card-body">
-          <h5 class="card-title">ダウンロード</h5>
+      <div class="form-check mb-2">
+        <input type="checkbox" id="printIntent" class="form-check-input">
+        <label for="printIntent" class="form-check-label">高画質モード (print intent)</label>
+      </div>
 
-          <div class="mb-2">
-            <label for="pageSelect" class="form-label">ページ選択</label>
-            <select id="pageSelect" class="form-select form-select-sm">
-              <option value="">選択してください</option>
-            </select>
-          </div>
+      <div class="form-check mb-2">
+        <input type="checkbox" id="disableForms" class="form-check-input">
+        <label for="disableForms" class="form-check-label">フォーム無効化</label>
+      </div>
 
-          <button id="downloadSelected" class="btn btn-success btn-sm w-100 mb-2">選択ページをダウンロード</button>
-          <button id="downloadAll" class="btn btn-success w-100">全ページダウンロード</button>
-        </div>
+      <div class="form-check mb-2">
+        <input type="checkbox" id="highQualityCanvas" class="form-check-input">
+        <label for="highQualityCanvas" class="form-check-label">Canvas高画質描画</label>
+      </div>
+
+      <div class="form-check mb-2">
+        <input type="checkbox" id="useDevicePixelRatio" class="form-check-input">
+        <label for="useDevicePixelRatio" class="form-check-label">高DPI対応 (Retina対応)</label>
+      </div>
+
+      <div class="form-check mb-4">
+        <input type="checkbox" id="useTransform" class="form-check-input">
+        <label for="useTransform" class="form-check-label">Transform最適化</label>
+      </div>
+
+      <button id="reRender" class="btn btn-primary w-100 mb-2" style="display: none;">再変換</button>
+
+      <div id="downloadSection" style="display: none;">
+        <button id="downloadAll" class="btn btn-success w-100">ダウンロード</button>
       </div>
     </div>
 
@@ -244,21 +224,39 @@
     const reRenderBtn = document.getElementById('reRender');
     const downloadAllBtn = document.getElementById('downloadAll');
     const downloadSection = document.getElementById('downloadSection');
-    const pageSelect = document.getElementById('pageSelect');
-    const downloadSelectedBtn = document.getElementById('downloadSelected');
 
     let currentPdf = null;
     let currentFileName = null;
     let renderedCanvases = [];
+    let renderDebounceTimer = null;
 
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.js';
+
+    // 設定変更時に自動再レンダリング（debounce付き）
+    function autoRerender() {
+      if (!currentPdf) return;
+
+      clearTimeout(renderDebounceTimer);
+      renderDebounceTimer = setTimeout(() => {
+        renderAllPages();
+      }, 500);
+    }
+
+    // 各設定項目に自動再レンダリングを設定
+    maxWidthInput.addEventListener('input', autoRerender);
+    scaleInput.addEventListener('input', autoRerender);
+    printIntentInput.addEventListener('change', autoRerender);
+    disableFormsInput.addEventListener('change', autoRerender);
+    highQualityCanvasInput.addEventListener('change', autoRerender);
+    useDevicePixelRatioInput.addEventListener('change', autoRerender);
+    useTransformInput.addEventListener('change', autoRerender);
 
     pdfUpload.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file && file.type === 'application/pdf') {
         handlePDFFile(file);
       } else if (file) {
-        showError('PDFファイルを選択してください');
+        alert('PDFファイルを選択してください');
       }
     });
 
@@ -270,18 +268,6 @@
 
     downloadAllBtn.addEventListener('click', () => {
       downloadAllPages();
-    });
-
-    downloadSelectedBtn.addEventListener('click', () => {
-      const selectedPageNum = parseInt(pageSelect.value);
-      if (selectedPageNum) {
-        const item = renderedCanvases.find(item => item.pageNumber === selectedPageNum);
-        if (item) {
-          downloadCanvas(item.canvas, item.pageNumber);
-        }
-      } else {
-        showError('ページを選択してください');
-      }
     });
 
     async function handlePDFFile(file) {
@@ -311,9 +297,9 @@
         } catch (error) {
           loading.style.display = 'none';
           if (error.name === 'PasswordException') {
-            showError('パスワード保護されたPDFは使用できません');
+            alert('パスワード保護されたPDFは使用できません');
           } else {
-            showError('PDFの読み込みに失敗しました');
+            alert('PDFの読み込みに失敗しました');
             console.error(error);
           }
         }
@@ -328,17 +314,8 @@
       preview.innerHTML = '';
       renderedCanvases = [];
 
-      // ページセレクトボックスをクリア
-      pageSelect.innerHTML = '<option value="">選択してください</option>';
-
       for (let i = 1; i <= currentPdf.numPages; i++) {
         await renderPage(currentPdf, i);
-
-        // ページセレクトボックスに追加
-        const option = document.createElement('option');
-        option.value = i;
-        option.textContent = `Page ${i}`;
-        pageSelect.appendChild(option);
       }
     }
 
@@ -474,7 +451,7 @@
 
     async function downloadAllPages() {
       if (renderedCanvases.length === 0) {
-        showError('ダウンロードする画像がありません');
+        alert('ダウンロードする画像がありません');
         return;
       }
 
@@ -492,16 +469,9 @@
       }
 
       downloadAllBtn.disabled = false;
-      downloadAllBtn.textContent = '全ページダウンロード';
+      downloadAllBtn.textContent = 'ダウンロード';
     }
 
-    function showError(message) {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'alert alert-danger mx-3 mt-3';
-      errorDiv.textContent = message;
-      preview.appendChild(errorDiv);
-      setTimeout(() => errorDiv.remove(), 5000);
-    }
   </script>
 </body>
 </html>
