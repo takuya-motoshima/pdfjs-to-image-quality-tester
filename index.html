@@ -345,16 +345,26 @@
     async function renderPage(pdf, pageNumber) {
       const page = await pdf.getPage(pageNumber);
 
+      // ユーザー指定の基本スケール値を取得(デフォルト: 1.0)
+      // この値でPDFページの初期拡大率を決定
       const baseScale = parseFloat(scaleInput.value) || 1.0;
+
+      // 出力画像の最大幅を取得(デフォルト: 1080px)
+      // baseScale適用後の幅がこの値を超える場合、自動的にスケールダウンされる
       const maxWidth = parseInt(maxWidthInput.value) || 1080;
+
+      console.log(`[Page ${pageNumber}] 入力パラメータ: baseScale=${baseScale}, maxWidth=${maxWidth}px`);
 
       // 元の幅を取得（scale: 1.0での幅）
       const originalViewport = page.getViewport({scale: 1.0});
       console.log(`[Page ${pageNumber}] PDFの元の幅: ${originalViewport.width}px × ${originalViewport.height}px (scale: 1.0)`);
 
+      // ステップ1: baseScaleを適用してビューポートを計算
       let viewport = page.getViewport({scale: baseScale});
       console.log(`[Page ${pageNumber}] baseScale適用後の幅: ${viewport.width}px × ${viewport.height}px (scale: ${baseScale})`);
 
+      // ステップ2: 最大幅制限チェック
+      // baseScale適用後の幅がmaxWidthを超える場合、再度スケールを調整
       if (viewport.width > maxWidth) {
         const newScale = maxWidth / (viewport.width / baseScale);
         viewport = page.getViewport({ scale: newScale });
